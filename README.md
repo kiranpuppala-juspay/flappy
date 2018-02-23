@@ -1,4 +1,3 @@
-`yarn`
 
 `npm i`
 
@@ -8,7 +7,3 @@
 
 `pulp --watch build`
 
-`****Known Issues ***`
-
-`*Edittext padding not working`
-`*Border shadow not working`
