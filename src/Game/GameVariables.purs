@@ -17,3 +17,6 @@ pipeGap = 300
 
 isAlive :: Boolean
 isAlive = true
+
+pipeRandom :: Int
+pipeRandom = 60

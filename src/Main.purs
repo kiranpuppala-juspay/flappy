@@ -34,14 +34,14 @@ foreign import click :: MEvent
 foreign import change :: MEvent
 
 
-imageObject ::forall a. String -> String-> Bounding ->  VDom Attr a
-imageObject uniqId url bound =  imageView
+imageObject ::forall a. String -> GameObject ->  VDom Attr a
+imageObject uniqId gameObject =  imageView
                         [
                           id_ uniqId
-                        , width (show bound.w)
-                        , height (show bound.h)
-                        , margin ((show bound.x) <> ","<>(show bound.y)<>",0,0")
-                        , imageUrl url
+                        , width (show gameObject.w)
+                        , height (show gameObject.h)
+                        , margin ((show gameObject.x) <> ","<>(show gameObject.y)<>",0,0")
+                        , imageUrl gameObject.sprite
                         ]
 
 
@@ -63,7 +63,7 @@ getScoreBoard state = relativeLayout
                       , margin "1020,170,0,0"
                       ]
                       [
-                        (imageObject "wooden" "board" {x:50,y:20,w:200,h:100}),
+                        (imageObject "wooden"  {x:50,y:20,w:200,h:100,sprite:"board"}),
 
                         textView
                         [
@@ -85,9 +85,7 @@ getGameStat state = relativeLayout
                     , width "500"
                     , height "200"
                     , centerInParent "true,-1"
-                    , visibility ( if state.gameState 
-                                            then "gone"
-                                            else "visible")
+                    , visibility ( if state.gameState then "gone" else "visible")
                     ]
                     [
                       textView
@@ -103,11 +101,11 @@ getGameStat state = relativeLayout
                       ]
                     ]
 
-topPipes :: forall a. Eff (random :: RANDOM |a ) (Array Bounding)
-topPipes = (traverse (\i -> randomInt 0 40 >>= \n-> pure { x:  1+(i * pipeGap) , y: 0, w: 60, h: (150 + n) }) (1..5))
+topPipes :: forall a. Eff (random :: RANDOM |a ) (Array GameObject)
+topPipes = (traverse (\i -> randomInt 0 pipeRandom >>= \n-> pure { x:  501+(i * pipeGap) , y: 0, w: 60, h: (150 + n), sprite:"pipe_flipped" }) (1..5))
  
-bottomPipes :: forall a. Eff (random :: RANDOM |a ) (Array Bounding)
-bottomPipes = (traverse (\i -> randomInt 0 40 >>= \n-> pure { x:  (i * pipeGap) , y: groundY-(150+n), w: 60, h: (150 + n) }) (1..5))
+bottomPipes :: forall a. Eff (random :: RANDOM |a ) (Array GameObject)
+bottomPipes = (traverse (\i -> randomInt 0 pipeRandom >>= \n-> pure { x:  500+(i * pipeGap) , y: groundY-(150+n), w: 60, h: (150 + n), sprite:"pipe" }) (1..5))
 
 
 widget :: forall a.StateType -> VDom Attr a
@@ -140,7 +138,7 @@ widget state = linearLayout
                     , margin ((show state.ground.x) <> ","<>(show state.ground.y)<>",0,0") 
                     ],
 
-                    (imageObject "flappy" "flappy" state.player),
+                    (imageObject "flappy"  state.player),
 
                     relativeLayout
                     [
@@ -148,7 +146,7 @@ widget state = linearLayout
                     , width "match_parent"
                     , height "match_parent"
                     ]
-                    (map (\o -> (imageObject ("id"<>show o.x) "pipe" o)) state.pipes),
+                    (map (\o -> (imageObject ("id"<>show o.x)  o)) state.pipes),
 
                     (getScoreBoard state),
 
@@ -160,8 +158,8 @@ widget state = linearLayout
 
 resetGame ::forall a. Eff( random :: RANDOM| a) StateType
 resetGame = do
-  _ <- U.updateState "ground" {x:0,y:groundY,w:1200,h:500}
-  _ <- U.updateState "player" {x:50,y:groundY-50,w:40,h:40}
+  _ <- U.updateState "ground" {x:0,y:groundY,w:1200,h:500,sprite:"ground"}
+  _ <- U.updateState "player" {x:50,y:groundY-50,w:40,h:40,sprite:"flappy"}
   top <- topPipes
   bottom <- bottomPipes
   _ <- U.updateState "pipes" (top<>bottom)
@@ -183,7 +181,7 @@ initializeVel = do
   U.updateState "currTime" 0
 
 
-collDet :: Bounding -> Bounding -> Boolean
+collDet :: GameObject -> GameObject -> Boolean
 collDet r1 r2 = do 
            not ((r2.x > (r1.x+r1.w)) || 
                ((r2.x+r2.w) < r1.x)  || 
@@ -203,7 +201,7 @@ updateFlappy (state::StateType)
                 state<- U.updateState "currTime" (state.currTime+20)
                 if (state.finalVelocity==state.initialVelocity) && (state.finalVelocity>0)
                   then do
-                    t<- U.updateState "egravity" (-1)
+                    _<- U.updateState "egravity" (-1)
                     pure unit
                   else
                     pure unit
@@ -212,8 +210,8 @@ updateFlappy (state::StateType)
 
                 if state.finalVelocity==0
                   then do
-                    w<-U.updateState "egravity" (-0.5)
-                    w<-U.updateState "initialVelocity" 0
+                    _<-U.updateState "egravity" (-0.5)
+                    _<-U.updateState "initialVelocity" 0
                     pure unit
                   else
                     pure unit
@@ -231,10 +229,8 @@ updateFlappy (state::StateType)
 
 updatePipes :: forall a.StateType -> Eff (| a) StateType
 updatePipes (state::StateType) 
-      | (state.gameState == isAlive) = (U.updateState "pipes" (map (\o->o{x=((o.x+(if o.x < -100
-                                                              then 1200
-                                                              else 0
-        ))-velocityX)}) state.pipes))
+      | (state.gameState == isAlive) =
+        (U.updateState "pipes" (map (\o->o{x=((o.x+(if o.x < -100 then 1200 else 0))-velocityX)}) state.pipes))
       | otherwise = pure state
 
 

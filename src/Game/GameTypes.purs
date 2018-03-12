@@ -1,18 +1,19 @@
 module Game.GameTypes where
 
 
-type Bounding = {
+type GameObject = {
             x :: Int,
             y :: Int,
             w :: Int,
-            h :: Int
+            h :: Int,
+						sprite::String
 }
 
 
 type StateType = {
-			  ground::Bounding,
-			  player::Bounding,
-			  pipes:: Array Bounding,
+			  ground::GameObject,
+			  player::GameObject,
+			  pipes:: Array GameObject,
 			  egravity::Int,
 			  initialVelocity::Int,
 			  finalVelocity::Int,
